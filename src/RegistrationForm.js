@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 
 const RegistrationForm = () => {
   const [name, setName] = useState('');
@@ -6,6 +7,19 @@ const RegistrationForm = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState(null);
+  const [users, setUsers] = useState([]);
+  const [editing, setEditing] = useState(false);
+  const [currentUser, setCurrentUser] = useState({});
+
+  useEffect(() => {
+    axios.get('/api/users')
+      .then(response => {
+        setUsers(response.data);
+      })
+      .catch(error => {
+        console.error(error);
+      });
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -14,15 +28,13 @@ const RegistrationForm = () => {
       return;
     }
     try {
-      const users = JSON.parse(localStorage.getItem('users')) || [];
-      const existingUser = users.find((user) => user.email === email);
-      if (existingUser) {
-        setError('Email already exists');
-        return;
-      }
-      users.push({ name, email, password });
-      localStorage.setItem('users', JSON.stringify(users));
-      console.log('User created successfully');
+      const response = await axios.post('/api/users', {
+        name,
+        email,
+        password,
+      });
+      console.log(response.data);
+      setUsers([...users, response.data]);
       setName('');
       setEmail('');
       setPassword('');
@@ -34,12 +46,43 @@ const RegistrationForm = () => {
     }
   };
 
-  const handleReset = () => {
-    setName('');
-    setEmail('');
-    setPassword('');
-    setConfirmPassword('');
-    setError(null);
+  const handleEdit = (user) => {
+    setEditing(true);
+    setCurrentUser(user);
+    setName(user.name);
+    setEmail(user.email);
+    setPassword(user.password);
+  };
+
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await axios.put(`/api/users/${currentUser._id}`, {
+        name,
+        email,
+        password,
+      });
+      console.log(response.data);
+      setUsers(users.map((user) => user._id === currentUser._id ? response.data : user));
+      setEditing(false);
+      setName('');
+      setEmail('');
+      setPassword('');
+      setConfirmPassword('');
+      setError(null);
+    } catch (e) {
+      console.error(e);
+      setError('Error updating user');
+    }
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      await axios.delete(`/api/users/${id}`);
+      setUsers(users.filter((user) => user._id !== id));
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   return (
@@ -105,14 +148,38 @@ const RegistrationForm = () => {
         >
           Join the waitlist
         </button>
+        {editing ? (
+          <button
+            className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded ml-4"
+            type="button"
+            onClick={handleUpdate}
+          >
+            Update
+          </button>
+        ) : (
+          <button
+            className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded ml-4"
+            type="button"
+            onClick={() => handleEdit(currentUser)}
+          >
+            Edit
+          </button>
+        )}
         <button
           className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded ml-4"
           type="button"
-          onClick={handleReset}
+          onClick={() => handleDelete(currentUser._id)}
         >
-          NEW
+          Delete
         </button>
       </form>
+      <ul>
+        {users.map((user) => (
+          <li key={user._id}>
+            {user.name} - {user.email}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 };
