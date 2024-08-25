@@ -23,10 +23,23 @@ const RegistrationForm = () => {
       users.push({ name, email, password });
       localStorage.setItem('users', JSON.stringify(users));
       console.log('User created successfully');
+      setName('');
+      setEmail('');
+      setPassword('');
+      setConfirmPassword('');
+      setError(null);
     } catch (e) {
       console.error(e);
       setError('Error creating user');
     }
+  };
+
+  const handleReset = () => {
+    setName('');
+    setEmail('');
+    setPassword('');
+    setConfirmPassword('');
+    setError(null);
   };
 
   return (
@@ -91,6 +104,13 @@ const RegistrationForm = () => {
           type="submit"
         >
           Join the waitlist
+        </button>
+        <button
+          className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded ml-4"
+          type="button"
+          onClick={handleReset}
+        >
+          NEW
         </button>
       </form>
     </div>
